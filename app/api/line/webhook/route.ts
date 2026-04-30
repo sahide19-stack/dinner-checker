@@ -16,8 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Process events asynchronously (don't block response)
-  void handleEvents(body.events);
+  await handleEvents(body.events);
 
   return NextResponse.json({ ok: true });
 }
