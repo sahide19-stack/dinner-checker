@@ -7,16 +7,19 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, icon } = body;
+  const { name, icon, sort_order } = body;
 
   if (!name || !icon) {
     return NextResponse.json({ error: 'name and icon are required' }, { status: 400 });
   }
 
+  const payload: Record<string, unknown> = { name, icon };
+  if (typeof sort_order === 'number') payload.sort_order = sort_order;
+
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('members')
-    .update({ name, icon })
+    .update(payload)
     .eq('id', id)
     .select()
     .single();

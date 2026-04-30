@@ -17,6 +17,7 @@ export default function SettingsPage() {
 
   // Local editable state
   const [memberEdits, setMemberEdits] = useState<Record<string, { name: string; icon: string }>>({});
+  const [memberOrder, setMemberOrder] = useState<string[]>([]);
   const [notifyTime, setNotifyTime] = useState('08:00');
   const [lineGroupId, setLineGroupId] = useState('');
   const [notifyUserId, setNotifyUserId] = useState('');
@@ -29,6 +30,7 @@ export default function SettingsPage() {
       .then(([m, s]: [Member[], Settings]) => {
         setMembers(m);
         setSettings(s);
+        setMemberOrder(m.map((mem) => mem.id));
         const edits: Record<string, { name: string; icon: string }> = {};
         for (const member of m) edits[member.id] = { name: member.name, icon: member.icon };
         setMemberEdits(edits);
@@ -41,6 +43,24 @@ export default function SettingsPage() {
         setSaveResult('error');
       });
   }, []);
+
+  const moveUp = (index: number) => {
+    if (index === 0) return;
+    setMemberOrder((prev) => {
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  };
+
+  const moveDown = (index: number) => {
+    setMemberOrder((prev) => {
+      if (index === prev.length - 1) return prev;
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
+  };
 
   const handleSave = async () => {
     // Validate
@@ -77,11 +97,11 @@ export default function SettingsPage() {
             notify_user_id: notifyUserId || null,
           }),
         }),
-        ...members.map((m) =>
-          fetch(`/api/members/${m.id}`, {
+        ...memberOrder.map((id, index) =>
+          fetch(`/api/members/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(memberEdits[m.id]),
+            body: JSON.stringify({ ...memberEdits[id], sort_order: index + 1 }),
           })
         ),
       ]);
@@ -148,7 +168,9 @@ export default function SettingsPage() {
                 メンバー
               </h2>
               <div className="space-y-3">
-                {members.map((m) => {
+                {memberOrder.map((id, index) => {
+                  const m = members.find((mem) => mem.id === id);
+                  if (!m) return null;
                   const edit = memberEdits[m.id] ?? { name: m.name, icon: m.icon };
                   return (
                     <div key={m.id} className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-sm">
@@ -173,6 +195,18 @@ export default function SettingsPage() {
                         className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-base"
                         placeholder="名前"
                       />
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => moveUp(index)}
+                          disabled={index === 0}
+                          className="text-gray-400 hover:text-orange-500 disabled:opacity-20 text-xs leading-none px-1"
+                        >▲</button>
+                        <button
+                          onClick={() => moveDown(index)}
+                          disabled={index === memberOrder.length - 1}
+                          className="text-gray-400 hover:text-orange-500 disabled:opacity-20 text-xs leading-none px-1"
+                        >▼</button>
+                      </div>
                     </div>
                   );
                 })}
