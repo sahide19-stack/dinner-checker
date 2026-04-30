@@ -226,8 +226,12 @@ export default function SettingsPage() {
                   className="border border-gray-200 rounded-lg px-3 py-2 text-base w-full"
                 />
                 <p className="text-xs text-gray-400 mt-2">
-                  設定した時刻と同じ「時」にCronが実行されると通知が送られます。
-                  Vercel Hobbyプランで変更する場合は <code className="bg-gray-100 px-1 rounded">vercel.json</code> のスケジュールも更新してください。
+                  毎朝 <span className="font-medium text-gray-600">{notifyTime} JST</span> に通知が届きます。
+                  時間を変更する場合は <code className="bg-gray-100 px-1 rounded">vercel.json</code> のスケジュールも{' '}
+                  <code className="bg-gray-100 px-1 rounded">
+                    0 {(((parseInt(notifyTime.split(':')[0], 10) - 9) % 24) + 24) % 24} * * *
+                  </code>{' '}
+                  に合わせてください。
                 </p>
               </div>
             </section>
