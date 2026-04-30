@@ -33,10 +33,9 @@ export async function DELETE(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Fire-and-forget LINE notification
   if (record) {
     const s = record as DinnerSchedule & { members: Member };
-    pushChangeNotification(s.members.name, s.members.icon, s.date, 'present').catch(
+    await pushChangeNotification(s.members.name, s.members.icon, s.date, 'present').catch(
       console.error
     );
   }

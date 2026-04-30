@@ -53,17 +53,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Fire-and-forget LINE notification
-  void supabase
-    .from('members')
-    .select('*')
-    .eq('id', member_id)
-    .single()
-    .then(({ data: member }) => {
-      if (!member) return;
-      const m = member as Member;
-      return pushChangeNotification(m.name, m.icon, date, 'absent');
-    });
+  const { data: member } = await supabase.from('members').select('*').eq('id', member_id).single();
+  if (member) {
+    const m = member as Member;
+    await pushChangeNotification(m.name, m.icon, date, 'absent').catch(console.error);
+  }
 
   return NextResponse.json(data, { status: 201 });
 }
