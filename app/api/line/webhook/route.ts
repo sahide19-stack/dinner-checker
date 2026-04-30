@@ -26,6 +26,7 @@ type LineEvent = {
   type: string;
   replyToken?: string;
   message?: { type: string; text?: string };
+  source?: { type: string; userId?: string; groupId?: string; roomId?: string };
 };
 
 async function handleEvents(events: LineEvent[]) {
@@ -33,6 +34,9 @@ async function handleEvents(events: LineEvent[]) {
     if (event.type !== 'message') continue;
     if (event.message?.type !== 'text') continue;
     if (!event.replyToken) continue;
+
+    const userId = event.source?.userId ?? 'unknown';
+    console.log(`[webhook] userId=${userId}`);
 
     const text = event.message.text ?? '';
     const replyText = await buildReplyText(text);
