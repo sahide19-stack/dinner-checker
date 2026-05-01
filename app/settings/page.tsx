@@ -214,7 +214,7 @@ export default function SettingsPage() {
                 <span className="text-2xl">⏰</span>
                 <div>
                   {/* Update this display when changing vercel.json cron schedule */}
-                  <p className="text-base font-medium text-gray-700">毎朝 09:30 JST</p>
+                  <p className="text-base font-medium text-gray-700">毎朝 08:00 JST</p>
                   <p className="text-xs text-gray-400 mt-0.5">変更する場合は vercel.json を編集してください</p>
                 </div>
               </div>
