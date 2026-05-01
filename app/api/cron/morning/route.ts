@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pushMorningSummary, isMorningNotifyTime } from '@/lib/line';
+import { pushMorningSummary } from '@/lib/line';
 
 export async function GET(request: NextRequest) {
   // Protect against unauthorized calls (Vercel sets this header automatically)
@@ -8,11 +8,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const shouldSend = await isMorningNotifyTime();
-  if (!shouldSend) {
-    return NextResponse.json({ ok: true, skipped: true });
-  }
-
+  // Timing is controlled solely by vercel.json cron schedule (currently 09:30 JST)
   try {
     await pushMorningSummary();
     return NextResponse.json({ ok: true, sent: true });

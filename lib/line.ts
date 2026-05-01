@@ -140,30 +140,6 @@ export async function pushMorningSummary(): Promise<void> {
   });
 }
 
-/**
- * Check if it is time to send the morning notification.
- *
- * Strategy: Vercel Hobby plan only supports daily crons.
- * The cron in vercel.json is fixed at a UTC time (default 23:00 UTC = 08:00 JST).
- * This function compares the DB-configured hour against the current JST hour so that
- * on Pro plans (hourly cron), the right hour fires. On Hobby (daily cron), the cron
- * fires once per day and this check always passes since the schedule matches the default time.
- *
- * If you change morning_notify_time in the app AND you are on the Hobby plan, also update
- * the cron schedule in vercel.json accordingly.
- */
-export async function isMorningNotifyTime(): Promise<boolean> {
-  const settings = await fetchSettings();
-  const timeStr = settings?.morning_notify_time ?? '08:00';
-
-  // Current time in JST (UTC+9)
-  const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const currentHourJst = nowJst.getUTCHours();
-
-  const [targetH] = timeStr.split(':').map(Number);
-  return currentHourJst === targetH;
-}
-
 // -------- Reply to LINE messages --------
 
 export async function buildReplyText(keyword: string): Promise<string | null> {

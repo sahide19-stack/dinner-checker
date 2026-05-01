@@ -18,12 +18,12 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const body = await request.json();
-  const { morning_notify_time, line_group_id, notify_user_id } = body;
+  const { line_group_id, notify_user_id } = body;
 
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('settings')
-    .update({ morning_notify_time, line_group_id, notify_user_id })
+    .update({ line_group_id, notify_user_id })
     .eq('id', 1)
     .select()
     .single();

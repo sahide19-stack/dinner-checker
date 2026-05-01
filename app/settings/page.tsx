@@ -18,7 +18,6 @@ export default function SettingsPage() {
   // Local editable state
   const [memberEdits, setMemberEdits] = useState<Record<string, { name: string; icon: string }>>({});
   const [memberOrder, setMemberOrder] = useState<string[]>([]);
-  const [notifyTime, setNotifyTime] = useState('08:00');
   const [lineGroupId, setLineGroupId] = useState('');
   const [notifyUserId, setNotifyUserId] = useState('');
 
@@ -34,7 +33,6 @@ export default function SettingsPage() {
         const edits: Record<string, { name: string; icon: string }> = {};
         for (const member of m) edits[member.id] = { name: member.name, icon: member.icon };
         setMemberEdits(edits);
-        setNotifyTime(s.morning_notify_time ?? '08:00');
         setLineGroupId(s.line_group_id ?? '');
         setNotifyUserId(s.notify_user_id ?? '');
       })
@@ -77,11 +75,6 @@ export default function SettingsPage() {
         return;
       }
     }
-    if (!/^\d{2}:\d{2}$/.test(notifyTime)) {
-      setSaveError('通知時間の形式が正しくありません（例: 08:00）');
-      setSaveResult('error');
-      return;
-    }
 
     setSaving(true);
     setSaveResult('idle');
@@ -92,7 +85,6 @@ export default function SettingsPage() {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            morning_notify_time: notifyTime,
             line_group_id: lineGroupId || null,
             notify_user_id: notifyUserId || null,
           }),
@@ -218,21 +210,13 @@ export default function SettingsPage() {
               <h2 className="text-sm font-bold text-orange-600 uppercase tracking-wide mb-3">
                 朝の通知時間
               </h2>
-              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm">
-                <input
-                  type="time"
-                  value={notifyTime}
-                  onChange={(e) => setNotifyTime(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-base w-full"
-                />
-                <p className="text-xs text-gray-400 mt-2">
-                  毎朝 <span className="font-medium text-gray-600">{notifyTime} JST</span> に通知が届きます。
-                  時間を変更する場合は <code className="bg-gray-100 px-1 rounded">vercel.json</code> のスケジュールも{' '}
-                  <code className="bg-gray-100 px-1 rounded">
-                    0 {(((parseInt(notifyTime.split(':')[0], 10) - 9) % 24) + 24) % 24} * * *
-                  </code>{' '}
-                  に合わせてください。
-                </p>
+              <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center gap-3">
+                <span className="text-2xl">⏰</span>
+                <div>
+                  {/* Update this display when changing vercel.json cron schedule */}
+                  <p className="text-base font-medium text-gray-700">毎朝 09:30 JST</p>
+                  <p className="text-xs text-gray-400 mt-0.5">変更する場合は vercel.json を編集してください</p>
+                </div>
               </div>
             </section>
 
