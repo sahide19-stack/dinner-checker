@@ -126,7 +126,7 @@ export async function pushMorningSummary(): Promise<void> {
   const notifyUserId = await resolveNotifyUserId();
   if (!notifyUserId) return;
 
-  const todayStr = toDateStr(new Date());
+  const todayStr = toDateStr(new Date(Date.now() + 9 * 60 * 60 * 1000));
   const { present, absent } = await fetchMembersAndSchedulesForDate(todayStr);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
 
@@ -143,7 +143,7 @@ export async function pushMorningSummary(): Promise<void> {
 // -------- Reply to LINE messages --------
 
 export async function buildReplyText(keyword: string): Promise<string | null> {
-  const today = new Date();
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const todayStr = toDateStr(today);
 
   if (keyword.includes('今日')) {
