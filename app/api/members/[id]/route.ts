@@ -6,8 +6,19 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const body = await request.json();
-  const { name, icon, sort_order } = body;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const { name, icon, sort_order } = body as Record<string, unknown>;
 
   if (!name || !icon) {
     return NextResponse.json({ error: 'name and icon are required' }, { status: 400 });

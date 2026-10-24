@@ -17,8 +17,18 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const body = await request.json();
-  const { line_group_id, notify_user_id } = body;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  if (typeof body !== 'object' || body === null) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const { line_group_id, notify_user_id } = body as Record<string, unknown>;
 
   const supabase = getSupabase();
   const { data, error } = await supabase
