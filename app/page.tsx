@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Calendar from '@/components/Calendar';
 import WeekView from '@/components/WeekView';
@@ -27,9 +27,8 @@ function formatDateJP(dateStr: string) {
 }
 
 export default function Home() {
-  // Stable reference to "today at mount time" — avoids stale comparisons on re-renders
-  const nowRef = useRef(new Date());
-  const now = nowRef.current;
+  // Captured once at mount time — avoids stale comparisons on re-renders
+  const [now] = useState(() => new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   // Month view state
@@ -99,6 +98,9 @@ export default function Home() {
   }, [viewMode, year, month, weekStart]);
 
   useEffect(() => {
+    // fetchSchedules は外部データ取得後に setState するため react-hooks/set-state-in-effect が発生するが、
+    // handleConfirm からも再利用するため useCallback で切り出しており、インライン化は困難。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSchedules();
   }, [fetchSchedules]);
 
