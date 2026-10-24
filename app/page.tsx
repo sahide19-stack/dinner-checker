@@ -19,6 +19,13 @@ function getWeekStart(d: Date): Date {
   return start;
 }
 
+function formatDateJP(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const days = ['日', '月', '火', '水', '木', '金', '土'];
+  return `${m}月${d}日(${days[date.getDay()]})`;
+}
+
 export default function Home() {
   // Stable reference to "today at mount time" — avoids stale comparisons on re-renders
   const nowRef = useRef(new Date());
@@ -33,10 +40,11 @@ export default function Home() {
   const [weekStart, setWeekStart] = useState<Date>(getWeekStart(now));
 
   const [members, setMembers] = useState<Member[]>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState(''); // 初期は誰も選択しない
   const [schedules, setSchedules] = useState<DinnerSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingToggle, setPendingToggle] = useState<{ date: string } | null>(null);
 
   // Fetch members on mount
   useEffect(() => {
@@ -47,7 +55,7 @@ export default function Home() {
       })
       .then((data: Member[]) => {
         setMembers(data);
-        if (data.length > 0) setSelectedMemberId(data[0].id);
+        // 自動選択しない — ユーザーに明示的に選ばせる
       })
       .catch((e) => {
         console.error(e);
@@ -94,50 +102,61 @@ export default function Home() {
     fetchSchedules();
   }, [fetchSchedules]);
 
+  // 日付タップ時：確認ダイアログを表示するだけ
   const handleToggle = useCallback(
-    async (date: string) => {
-      const existing = schedules.find(
-        (s) => s.member_id === selectedMemberId && s.date === date
-      );
-
-      if (existing) {
-        setSchedules((prev) => prev.filter((s) => s.id !== existing.id));
-      } else {
-        const optimistic: DinnerSchedule = {
-          id: -Date.now(),
-          member_id: selectedMemberId,
-          date,
-          status: 'absent',
-          updated_at: new Date().toISOString(),
-          updated_by: selectedMemberId,
-        };
-        setSchedules((prev) => [...prev, optimistic]);
-      }
-
-      try {
-        if (existing) {
-          await fetch(`/api/schedules/${existing.id}`, { method: 'DELETE' });
-        } else {
-          const res = await fetch('/api/schedules', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ member_id: selectedMemberId, date }),
-          });
-          const saved: DinnerSchedule = await res.json();
-          setSchedules((prev) =>
-            prev.map((s) =>
-              s.member_id === selectedMemberId && s.date === date && s.id < 0 ? saved : s
-            )
-          );
-        }
-      } catch (e) {
-        console.error(e);
-        setError('保存に失敗しました。再度お試しください。');
-        fetchSchedules();
-      }
+    (date: string) => {
+      if (!selectedMemberId) return; // メンバー未選択時は無視
+      setPendingToggle({ date });
     },
-    [schedules, selectedMemberId, fetchSchedules]
+    [selectedMemberId]
   );
+
+  // 確認ダイアログで「はい」を押したときの実際の処理
+  const handleConfirm = useCallback(async () => {
+    if (!pendingToggle || !selectedMemberId) return;
+    const { date } = pendingToggle;
+    setPendingToggle(null);
+
+    const existing = schedules.find(
+      (s) => s.member_id === selectedMemberId && s.date === date
+    );
+
+    if (existing) {
+      setSchedules((prev) => prev.filter((s) => s.id !== existing.id));
+    } else {
+      const optimistic: DinnerSchedule = {
+        id: -Date.now(),
+        member_id: selectedMemberId,
+        date,
+        status: 'absent',
+        updated_at: new Date().toISOString(),
+        updated_by: selectedMemberId,
+      };
+      setSchedules((prev) => [...prev, optimistic]);
+    }
+
+    try {
+      if (existing) {
+        await fetch(`/api/schedules/${existing.id}`, { method: 'DELETE' });
+      } else {
+        const res = await fetch('/api/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: selectedMemberId, date }),
+        });
+        const saved: DinnerSchedule = await res.json();
+        setSchedules((prev) =>
+          prev.map((s) =>
+            s.member_id === selectedMemberId && s.date === date && s.id < 0 ? saved : s
+          )
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      setError('保存に失敗しました。再度お試しください。');
+      fetchSchedules();
+    }
+  }, [pendingToggle, schedules, selectedMemberId, fetchSchedules]);
 
   // Month navigation (limit: next month)
   const nextMonthLimit = (() => {
@@ -204,6 +223,12 @@ export default function Home() {
     setMonth(now.getMonth() + 1);
     setWeekStart(todayWeekStart);
   };
+
+  // 確認ダイアログ用の計算
+  const pendingMember = members.find((m) => m.id === selectedMemberId);
+  const pendingIsRemoving =
+    pendingToggle != null &&
+    schedules.some((s) => s.member_id === selectedMemberId && s.date === pendingToggle.date);
 
   return (
     <div className="max-w-[430px] mx-auto min-h-screen pb-32">
@@ -281,6 +306,14 @@ export default function Home() {
         </button>
       </div>
 
+      {/* メンバー未選択時の案内 */}
+      {!selectedMemberId && !loading && (
+        <div className="mx-4 mb-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-600 text-center leading-relaxed">
+          誰の予定を変更しますか？<br />
+          上のボタンで選んでください
+        </div>
+      )}
+
       {/* Error banner */}
       {error && (
         <div className="mx-3 mb-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 flex items-start gap-2">
@@ -321,6 +354,46 @@ export default function Home() {
 
       {/* Today Summary (fixed bottom) */}
       <TodaySummary members={members} schedules={schedules} />
+
+      {/* 確認ダイアログ */}
+      {pendingToggle && pendingMember && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-6"
+          onClick={() => setPendingToggle(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-[300px] shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-center text-2xl mb-1">{pendingMember.icon}</p>
+            <p className="text-center text-base font-bold text-gray-800 mb-1">
+              {pendingMember.name}
+            </p>
+            <p className="text-center text-sm text-gray-400 mb-4">
+              {formatDateJP(pendingToggle.date)}
+            </p>
+            <p className="text-center text-base text-gray-700 mb-5">
+              {pendingIsRemoving ? '「いる」に戻しますか？' : '「いらない」にしますか？'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingToggle(null)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleConfirm}
+                className={`flex-1 py-2.5 rounded-xl text-white font-bold text-sm ${
+                  pendingIsRemoving ? 'bg-blue-500' : 'bg-red-400'
+                }`}
+              >
+                {pendingIsRemoving ? 'いる に戻す' : 'いらない'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
