@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Member, Settings } from '@/types';
+import { testLineNotification } from '@/app/actions/line';
 
 export default function SettingsPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -116,10 +117,9 @@ export default function SettingsPage() {
     setTestResult('idle');
     setTestError('');
     try {
-      const res = await fetch('/api/line/test', { method: 'POST' });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `エラー (${res.status})`);
+      const result = await testLineNotification();
+      if (!result.ok) {
+        throw new Error(result.error ?? '送信に失敗しました。');
       }
       setTestResult('ok');
       setTimeout(() => setTestResult('idle'), 4000);
